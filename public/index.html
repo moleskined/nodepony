@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
+  <style>
+    #graph {
+      border: 1px solid lightgray;
+      height: 300px;
+      width: 300px;
+    }
+
+    #working {
+      border: 1px solid;
+      width: 100%;
+    }
+
+    #working td,
+    #working th {
+      border: 1px solid;
+    }
+  </style>
+</head>
+
+<body>
+  <section>
+    <table id="working">
+      <thead>
+        <tr>
+        </tr>
+        <tr>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <hr>
+
+    <div>
+      <label>
+        Start <input type="number" value="1" id="start_node">
+      </label>
+      <label>
+        Finish <input type="number" value="6" id="finish_node">
+      </label>
+    </div>
+
+    <fieldset>
+      <legend>Routing Method</legend>
+      <div>
+        <label>
+            <input type="radio" value="dj" name="method" id="r_dj" checked>
+            Dijkstra
+        </label>
+      </div>
+      <div>
+        <label>
+            <input type="radio" value="bf" name="method" id="r_bf" disabled>
+            Bellman-Ford
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Graph Settings</legend>
+      <div>
+        <label>Add Return Edges? <input type="checkbox" id="addReturnEdge"></label>
+      </div>
+      <div>
+        <label>Nodes <input type="number" min="2" max="20" id="graphSize"></label>
+      </div>
+      <button onclick="newGraph(true)">New Graph</button>
+    </fieldset>
+  </section>
+
+  <hr>
+
+  <section>
+    <div id="graph"></div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
