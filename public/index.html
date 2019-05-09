@@ -24,48 +24,66 @@
     #working th {
       border: 1px solid;
     }
+
+    #working tbody tr.step-hidden {
+      cursor: zoom-in;
+    }
+
+    #working tbody tr.step-hidden td > span {
+      opacity: 0;
+    }
+
+    #working tbody tr.step-hidden:hover td > span {
+      opacity: 1;
+    }
   </style>
 </head>
 
 <body>
-  <section>
-    <table id="working">
-      <thead>
-        <tr>
-        </tr>
-        <tr>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <hr>
-
+  <fieldset>
+    <legend>Routing Method</legend>
     <div>
       <label>
-        Start <input type="number" value="1" id="start_node">
-      </label>
-      <label>
-        Finish <input type="number" value="6" id="finish_node">
+        <input type="radio" value="dj" name="method" id="r_dj" checked>
+        Dijkstra
       </label>
     </div>
+    <div>
+      <label>
+        <input type="radio" value="bf" name="method" id="r_bf" disabled>
+        Bellman-Ford
+      </label>
+    </div>
+  </fieldset>
+  <hr>
+  <table id="working">
+    <thead>
+      <tr>
+      </tr>
+      <tr>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    <fieldset>
-      <legend>Routing Method</legend>
-      <div>
-        <label>
-            <input type="radio" value="dj" name="method" id="r_dj" checked>
-            Dijkstra
-        </label>
-      </div>
-      <div>
-        <label>
-            <input type="radio" value="bf" name="method" id="r_bf" disabled>
-            Bellman-Ford
-        </label>
-      </div>
-    </fieldset>
+  <hr>
+  <div>
+    <label>
+      Start <input type="number" value="1" id="start_node" >
+    </label>
+    <label>
+      Finish <input type="number" value="6" id="finish_node" >
+    </label>
+  </div>
+  <hr>
 
+  <div>
+    <button onclick="newGraph(true)" id="state_over">Start Over</button>
+    <button onclick="app.back()" id="back">Back</button>
+    <button onclick="app.next()" id="next">Next</button>
+  </div>
+
+  <section style="display: none">
     <fieldset>
       <legend>Graph Settings</legend>
       <div>

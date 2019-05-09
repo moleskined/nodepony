@@ -2,7 +2,7 @@ const DIJKSTRA = 'dj';
 const BELLMAN_FORD = 'bf';
 const DEFAULT_GRAPH_SIZE = 6;
 const NODE_START_EDGES = 2;
-const ADD_RETURN_EDGE = false;
+const ADD_RETURN_EDGE = true;
 const WEIGHT_SCALE = 10;
 const DEFAULT_METHOD = DIJKSTRA;
 
@@ -136,6 +136,7 @@ class App {
     this._options = options;
     this._tableBody = document.querySelector('#working tbody');
     this._tableBody.innerHTML = '';
+    this.updateUi();
   }
 
   initGraph() {
@@ -145,46 +146,72 @@ class App {
       edges: this.visEdges,
     };
     const options = {};
-    const graphRender = new vis.Network(container, data, options);
+    this._graphRenderer = new vis.Network(container, data, options);
   }
 
-  get visNodes() {
-    return new vis.DataSet(this._graph.nodes.map(node => ({
-      id: node.name,
-      label: node.label,
-    })));
+  next() {
+    const state = this.state;
+    
+    if (!state._step) {
+      state._step = 0;
+    }
+    
+    if (state._step >= state.I) {
+      return;
+    }
+
+    state._step++;
+
+    const node = this._graph.nodeMap.get([...state.T][state._step-1]);
+    const row = document.querySelector(`#iteration_${state._step}`);
+    row.className = row.className.replace('step-hidden', '');
+
+    this._graphRenderer.selectNodes([`node_${node.name}`]);
+    this.updateUi();
   }
 
-  get visEdges() {
-    const allEdges = [];
-    this._graph.nodes.forEach(node => node.edges.forEach(edge => {
-      allEdges.push({
-        label: `${edge.weight}`,
-        from: node.name,
-        to: edge.to.name,
-        arrows: {
-          to: {
-            type: 'arrow',
-            enabled: true,
-          }
-        },
+  back() {
+    const state = this.state;
+    
+    if (!state._step) {
+      state._step = 0;
+    }
+
+    if (state._step < 2) {
+      return;
+    }
+    
+    const row = document.querySelector(`#iteration_${state._step}`);
+    state._step--;
+    const node = this._graph.nodeMap.get([...state.T][state._step-1]);
+    row.className = row.className = 'step-hidden';
+
+    this._graphRenderer.selectNodes([`node_${node.name}`]);
+    this.updateUi();
+  }
+
+  updateUi() {
+    if (!this.state) {
+      document.querySelectorAll('button').forEach((button) => {
+        button.disabled = true;
       });
-    }));
-    return allEdges;
+
+      return;
+    }
+
+    document.getElementById('state_over').disabled = false;
+    document.getElementById('back').disabled = !this.state._step || this.state._step < 2;
+    document.getElementById('next').disabled = (this.state._step >= this.state.I);
   }
 
-  get start() {
-    return `${this._options.start}`;
-  }
-
-  initTable() {
+  initState() {
     const set = this._set;
     const nodeMap = this._graph.nodeMap;
     const tableHead = document.querySelectorAll('#working thead tr');
     tableHead[0].innerHTML = `<th rowspan="2">I</th><th rowspan="2">T</th>`;
     tableHead[1].innerHTML = ``;
 
-    const table = {
+    const table = this._state = {
       I: 0,           // Iteration
       T: new Set(),   // Set of nodes so far incorporated
       L: new Map(),
@@ -214,61 +241,23 @@ class App {
     });
 
     const startNode = nodeMap.get(this.start);
-    this.initialise(startNode, table);
+    this.processDijkstra(startNode, table);
+    this.updateUi();
   }
 
-  initialise(node, table) {
+  processDijkstra(node, table) {
     table.I++;
     table.T.add(node.name);
 
+    const l = table.L.get(node.name);   // Current node
     node.edges.forEach(edge => {
       const { to, weight } = edge;
       const ln = table.L.get(to.name);
 
-      ln.cost = weight;
-      ln.path = [node.name, to.name];
-    });
-
-    const sorted = Array.from(table.L)
-    .map(t => t[1])
-    .sort((n1, n2) => {
-      if (n1.cost > n2.cost) {
-        return -1;
-      }
-      if (n1.cost < n2.cost) {
-        return 1;
-      }
-      return 0;
-    });
-
-    let nextL;
-
-    do {
-      nextL = sorted.pop();
-    } while (nextL && table.T.has(nextL.name))
-
-    if (!nextL) {
-      throw Error('Why no next node??');
-    }
-
-    this._dumpTable(table);
-    const nextNode = this._graph.nodeMap.get(nextL.name);
-    this.process(nextNode, table);
-  }
-
-  process(node, table) {
-    table.I++;
-    table.T.add(node.name);
-
-    const l = table.L.get(node.name);
-    node.edges.forEach(edge => {
-      const { to, weight } = edge;
-      const ln = table.L.get(to.name);
-
-      const totalCost = l.cost + weight;
+      const totalCost = l.cost !== Infinity ? l.cost + weight : weight;
       if (totalCost < ln.cost) {
         ln.cost = totalCost;
-        ln.path = [...l.path, ln.name];
+        ln.path = l.path.length < 1 ? [node.name, to.name] : [...l.path, ln.name];
       }
     });
 
@@ -285,6 +274,7 @@ class App {
     });
 
     let nextL;
+    this._drawRow(table);
 
     do {
       nextL = sorted.pop();
@@ -294,35 +284,69 @@ class App {
       return;
     }
 
-    this._dumpTable(table);
     const nextNode = this._graph.nodeMap.get(nextL.name);
-    this.process(nextNode, table);
+    this.processDijkstra(nextNode, table);
   }
 
-  _dumpTable(table) {
+  _drawRow(table) {
     const body = this._tableBody;
-    const row = document.createElement('tr');
+    const row = createElement('tr', { 'class': 'step-hidden' });
+    row.id = `iteration_${table.I}`;
     body.appendChild(row);
 
     let cell = document.createElement('td');
-    cell.innerText = table.I;
+    cell.innerHTML = `<span>${table.I}</span>`;
     row.appendChild(cell);
 
     cell = document.createElement('td');
-    cell.innerText = `{${Array.from(table.T)}}`;
+    cell.innerHTML = `<span>{${Array.from(table.T)}}</span>`;
     row.appendChild(cell);
 
     table.L.forEach(l => {
       if (this.start !== l.name) {
         cell = document.createElement('td');
-        cell.innerText = l.cost !== Infinity ? l.cost : '∞';
+        cell.innerHTML = `<span>${l.cost !== Infinity ? l.cost : '∞'}</span>`;
         row.appendChild(cell);
 
         cell = document.createElement('td');
-        cell.innerText = l.path.join('–');
+        cell.innerHTML = `<span>${l.path.join('–')}</span>`;
         row.appendChild(cell);
       }
     });
+  }
+
+  get visNodes() {
+    return new vis.DataSet(this._graph.nodes.map(node => ({
+      id: `node_${node.name}`,
+      label: node.label,
+    })));
+  }
+
+  get visEdges() {
+    const allEdges = [];
+    this._graph.nodes.forEach(node => node.edges.forEach(edge => {
+      allEdges.push({
+        id: `edge_${node.name}_${edge.to.name}`,
+        label: `${edge.weight}`,
+        from: `node_${node.name}`,
+        to: `node_${edge.to.name}`,
+        arrows: {
+          to: {
+            type: 'arrow',
+            enabled: true,
+          }
+        },
+      });
+    }));
+    return allEdges;
+  }
+
+  get start() {
+    return `${this._options.start}`;
+  }
+
+  get state() {
+    return this._state;
   }
 }
 
@@ -355,7 +379,17 @@ const newGraph = (confirm) => {
   });
 
   app.initGraph();
-  app.initTable();
+  app.initState();
+};
+
+const createElement = (type, attributes = {}) => {
+  const element = document.createElement(type);
+  for (let name in attributes) {
+    const attribute = document.createAttribute(name);
+    attribute.value = attributes[name];
+    element.setAttributeNode(attribute);
+  }
+  return element;
 };
 
 newGraph();
