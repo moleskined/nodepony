@@ -1,10 +1,10 @@
-const DIJKSTRA = 'dj';
-const BELLMAN_FORD = 'bf';
+const DIJKSTRA = 'DIJKSTRA';
+const BELLMAN_FORD = 'BELLMAN_FORD';
 const DEFAULT_GRAPH_SIZE = 6;
 const NODE_START_EDGES = 2;
 const ADD_RETURN_EDGE = true;
 const WEIGHT_SCALE = 10;
-const DEFAULT_METHOD = DIJKSTRA;
+const DEFAULT_METHOD = BELLMAN_FORD;
 
 class Node {
   constructor(name) {
@@ -205,6 +205,96 @@ class App {
   }
 
   initState() {
+    if (this.method === BELLMAN_FORD) {
+      return this.initBellmanFord();
+    }
+
+    return this.initDijkstraState();
+  }
+
+  initBellmanFord() {
+    const set = this._set;
+    const nodeMap = this._graph.nodeMap;
+    const tableHead = document.querySelectorAll('#working thead tr');
+    tableHead[0].innerHTML = `<th rowspan="2">h</th>`;
+    tableHead[1].innerHTML = ``;
+
+    const table = this._state = {
+      h: 0,           // Iteration
+      L: new Map(),
+      _distance: {},
+      _predecessor: {},
+    };
+
+    set.forEach(s => {
+      table.L.set(s.name, {
+        name: s.name,
+        cost: s.name !== this.start ? Infinity: 0,
+        path: [s.name],
+        _node: s,
+      });
+      if (s.name !== this.start) {
+        let th = createElement('th', { 'colspan': '2' });
+        th.innerHTML = `L<sub>2</sub>(${s.name})`;
+        tableHead[0].appendChild(th);
+
+        th = createElement('th');
+        th.innerHTML = `w`;
+        tableHead[1].appendChild(th);
+        th = createElement('th');
+        th.innerHTML = `p`;
+        tableHead[1].appendChild(th);
+      }
+    });
+
+    const start = nodeMap.get(this.start);
+    this.processBellmanFord(table, start);
+    this.updateUi();
+  }
+
+  processBellmanFord(table, start) {
+    const vertices = table.L;
+    const source = start.name;
+
+    this._drawBfRow(table);
+
+    vertices.forEach((vertex) => {
+      table.h++;
+      vertex._node.edges.forEach((e) => {
+        const to = vertices.get(e.to.name);
+        if (vertex.cost + e.weight < to.cost) {
+          to.path = [...vertex.path, e.to.name];
+          to.cost = vertex.cost + e.weight;
+        }
+      });
+      this._drawBfRow(table);
+    });
+  }
+
+  _drawBfRow(table) {
+    const body = this._tableBody;
+    const row = createElement('tr');
+    row.id = `iteration_${table.I}`;
+    body.appendChild(row);
+
+    let cell = document.createElement('td');
+    cell.innerHTML = `<span>${table.h}</span>`;
+    row.appendChild(cell);
+
+    table.L.forEach(l => {
+      if (this.start !== l.name) {
+        cell = document.createElement('td');
+        cell.innerHTML = `<span>${l.cost !== Infinity ? l.cost : '∞'}</span>`;
+        row.appendChild(cell);
+
+        cell = document.createElement('td');
+        cell.innerHTML = `<span>${l.cost !== Infinity ? l.path.join('–') : '—'}</span>`;
+        row.appendChild(cell);
+      }
+    });
+  }
+
+  initDijkstraState() {
     const set = this._set;
     const nodeMap = this._graph.nodeMap;
     const tableHead = document.querySelectorAll('#working thead tr');
@@ -309,7 +399,7 @@ class App {
         row.appendChild(cell);
 
         cell = document.createElement('td');
-        cell.innerHTML = `<span>${l.path.join('–')}</span>`;
+        cell.innerHTML = `<span>${l.cost !== Infinity ? l.path.join('–') : '—'}</span>`;
         row.appendChild(cell);
       }
     });
@@ -348,6 +438,10 @@ class App {
   get state() {
     return this._state;
   }
+
+  get method() {
+    return this._options.method;
+  }
 }
 
 let app = null;
@@ -362,21 +456,25 @@ addReturnEdge.checked = ADD_RETURN_EDGE;
 graphSize.value = DEFAULT_GRAPH_SIZE;
 startNode.value = 1;
 finishNode.value = DEFAULT_GRAPH_SIZE;
+document.getElementById(`r_${DEFAULT_METHOD}`).checked = true;
 
 const newGraph = (confirm) => {
   if (confirm && !window.confirm(`Start new graph? Progress will be lost.`)) {
     return;
   }
 
-  const options = {
+  const networkOptions = {
     addReturnEdge: addReturnEdge.checked,
     size: graphSize.value,
   };
 
-  app = new App(new Network(options), {
+  const appSettings = {
     start: startNode.value,
     end: finishNode.value = graphSize.value,
-  });
+    method: document.querySelector('input[name=method]:checked').value,
+  };
+
+  app = new App(new Network(networkOptions), appSettings);
 
   app.initGraph();
   app.initState();
@@ -392,4 +490,9 @@ const createElement = (type, attributes = {}) => {
   return element;
 };
 
+const setupEventHandlers = () => {
+
+};
+
 newGraph();
+setupEventHandlers();
