@@ -1,0 +1,15 @@
+{
+  "name": "nodepony",
+  "version": "1.0.0",
+  "description": "Routing algorithm practice",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "author": "John Cunningham",
+  "license": "ISC",
+  "dependencies": {
+    "connect": "^3.6.6",
+    "serve-static": "^1.13.2"
+  }
+}
