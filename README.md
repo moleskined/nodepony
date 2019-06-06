@@ -11,3 +11,4 @@ I wanted to create a bunch of examples for myself and others to practice.
 npm install
 npm test
 ```
+Then open [http://localhost:8080](http://localhost:8080)
